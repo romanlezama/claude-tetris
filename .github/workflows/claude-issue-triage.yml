@@ -84,6 +84,16 @@ jobs:
 
                <!-- claude-issue-triage -->
 
+               Reglas de formato: el comentario debe ser Markdown válido que GitHub renderice correctamente
+               (GitHub Flavored Markdown):
+               - Encabezados (`##`, `###`) al inicio de la línea, sin sangría, con una línea en blanco antes y después.
+               - Listas con `-` o `1.` y una línea en blanco antes de cada lista.
+               - Nombres de archivos, funciones y variables entre backticks (`game.js`, `collide()`).
+               - Fragmentos de código en bloques con triple backtick e indicando el lenguaje (```js).
+               - Saltos de línea reales en el archivo; nunca secuencias literales `\n`.
+               - Sin HTML, salvo el marcador `<!-- claude-issue-triage -->` al final.
+               - No envuelvas todo el comentario en un bloque de código.
+
             6. Publica (o actualiza, si ya existe) el comentario de diagnóstico con:
                `gh issue comment ${{ github.event.issue.number }} --repo ${{ github.repository }} --edit-last --create-if-none --body-file /tmp/triage.md`
                Así, cuando el issue se edita, se actualiza el mismo comentario en lugar de crear uno nuevo.
