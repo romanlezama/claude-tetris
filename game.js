@@ -14,6 +14,7 @@ const COLORS = [
   '#90caf9', // J - azul pálido
   '#ffb74d', // L - orange
   '#b0bec5', // N - tuerca (gris metálico)
+  '#fff176', // ⚡ rayo
 ];
 
 const PIECES = [
@@ -26,9 +27,12 @@ const PIECES = [
   [[6,0,0],[6,6,6],[0,0,0]],                  // J
   [[0,0,7],[7,7,7],[0,0,0]],                  // L
   [[8,8,8],[8,0,8],[8,8,8]],                  // N - tuerca (hueco central)
+  [[9]],                                       // ⚡ rayo
 ];
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
+const RAYO = 9;        // tipo de la pieza especial; debe ser el último de PIECES
+const RAYO_EVERY = 1;  // aparece cada N líneas
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -45,14 +49,18 @@ const themeToggle = document.getElementById('theme-toggle');
 const themeLabel = document.getElementById('theme-label');
 
 let gridColor;
-let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
+let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId, rayoPending;
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
 }
 
 function randomPiece() {
-  const type = Math.floor(Math.random() * (PIECES.length - 1)) + 1;
+  // el rayo (último tipo) nunca sale por sorteo
+  return createPiece(Math.floor(Math.random() * (RAYO - 1)) + 1);
+}
+
+function createPiece(type) {
   const shape = PIECES[type].map(row => [...row]);
   return { type, shape, x: Math.floor(COLS / 2) - Math.floor(shape[0].length / 2), y: 0 };
 }
@@ -110,6 +118,7 @@ function clearLines() {
   }
   if (cleared) {
     lines += cleared;
+    if (Math.floor(lines / RAYO_EVERY) > Math.floor((lines - cleared) / RAYO_EVERY)) rayoPending = true;
     score += (LINE_SCORES[cleared] || 0) * level;
     level = Math.floor(lines / 10) + 1;
     dropInterval = Math.max(100, 1000 - (level - 1) * 90);
@@ -140,15 +149,20 @@ function softDrop() {
   }
 }
 
+function clearColumn(x) {
+  for (let r = 0; r < ROWS; r++) board[r][x] = 0;
+}
+
 function lockPiece() {
-  merge();
-  clearLines();
+  if (current.type === RAYO) clearColumn(current.x);
+  else { merge(); clearLines(); }
   spawn();
 }
 
 function spawn() {
   current = next;
-  next = randomPiece();
+  next = rayoPending ? createPiece(RAYO) : randomPiece();
+  rayoPending = false;
   if (collide(current.shape, current.x, current.y)) {
     endGame();
   }
@@ -170,6 +184,12 @@ function drawBlock(context, x, y, colorIndex, size, alpha) {
   // highlight
   context.fillStyle = 'rgba(255,255,255,0.12)';
   context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
+  if (colorIndex === RAYO) {
+    context.font = `${size * 0.7}px sans-serif`;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText('⚡', x * size + size / 2, y * size + size / 2);
+  }
   context.globalAlpha = 1;
 }
 
@@ -282,6 +302,7 @@ function init() {
   gameOver = false;
   dropInterval = 1000;
   dropAccum = 0;
+  rayoPending = false;
   lastTime = performance.now();
   next = randomPiece();
   spawn();
