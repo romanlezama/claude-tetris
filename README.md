@@ -41,6 +41,11 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
 - **Pieza fantasma** (_ghost piece_): muestra dónde aterrizará la pieza actual.
 - **Vista previa** de la siguiente pieza.
 - **Modo claro / oscuro** mediante un switch en la esquina superior derecha (oscuro por defecto; la elección se guarda en `localStorage`).
+- **Skins visuales** seleccionables desde el panel lateral, sin recargar (la elección se guarda en `localStorage`):
+  - **Retro**: bloques cuadrados y colores planos (por defecto).
+  - **Neón**: fondo negro y bloques con brillo (_glow_ con `shadowBlur`).
+  - **Pastel**: colores suaves y bordes redondeados.
+  - **Pixel art**: textura de damero dibujada sobre cada bloque.
 - **Sistema de puntuación** clásico de Tetris (100 / 300 / 500 / 800 multiplicado por nivel).
 - **Niveles** que aumentan cada 10 líneas y aceleran la caída.
 - **Pausa** y **Game Over** con opción de reinicio.
@@ -99,7 +104,7 @@ El juego se compone de tres archivos que cooperan:
 Define la estructura visual:
 
 - Un `<canvas id="board">` de **300 × 600** píxeles donde se renderiza el tablero.
-- Un panel lateral con `SCORE`, `LINES`, `LEVEL`, vista de la siguiente pieza y la lista de controles.
+- Un panel lateral con `SCORE`, `LINES`, `LEVEL`, vista de la siguiente pieza, selector de skin y la lista de controles.
 - Un overlay para los estados **PAUSA** y **GAME OVER**.
 
 ### 2. `style.css`
@@ -175,10 +180,13 @@ Algunos parámetros fáciles de tunear en `game.js`:
 | `COLS`         | Columnas del tablero                     | `10`                  |
 | `ROWS`         | Filas del tablero                        | `20`                  |
 | `BLOCK`        | Tamaño en píxeles de cada celda          | `30`                  |
-| `COLORS`       | Paleta de colores por tipo de pieza      | 9 colores             |
+| `COLORS`       | Paleta de colores por tipo de pieza (skin Retro) | 9 colores     |
+| `SKINS`        | Skins: paleta (9 colores) + función que dibuja cada celda | `retro`, `neon`, `pastel`, `pixel` |
 | `RAYO_EVERY`   | Cada cuántas líneas aparece el rayo ⚡    | `1`                   |
 | `LINE_SCORES`  | Puntos por 1, 2, 3 o 4 líneas eliminadas | `[0,100,300,500,800]` |
 | `dropInterval` | Velocidad inicial de caída en ms         | `1000`                |
+
+> Para crear una skin nueva añade una entrada a `SKINS` con `colors` (índice 0 = `null`, 1–9 = tipos de pieza) y `drawCell(context, px, py, size, color)`, y una `<option>` con la misma clave en `#skin-select` (`index.html`).
 
 > Si cambias `COLS`, `ROWS` o `BLOCK`, recuerda ajustar también `width` y `height` del `<canvas id="board">` en `index.html` para que coincida (`COLS × BLOCK` × `ROWS × BLOCK`).
 
