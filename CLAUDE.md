@@ -28,7 +28,8 @@ Key points in `game.js` that span multiple functions:
 - **`collide(shape, x, y)` is the single source of truth** for movement, rotation (`tryRotate` with kicks `[0,-1,1,-2,2]`), gravity, ghost projection (`ghostY`), and game-over detection in `spawn()`. Cells with `y < 0` are allowed (above the board).
 - **Locking pipeline:** `lockPiece()` → `merge()` → `clearLines()` (or `clearColumn()` for `RAYO`) (updates lines/score/level/`dropInterval`) → `spawn()` (promotes `next`, may call `endGame()`, redraws the preview).
 - **Loop control:** `loop()` reschedules itself via `requestAnimationFrame` and stores the id in `animId`; pause and game over stop it with `cancelAnimationFrame(animId)`. Unpausing restarts it by calling `loop()` directly after resetting `lastTime`.
-- **One overlay for two states:** `#overlay` is reused for both PAUSA and GAME OVER by rewriting `#overlay-title` / `#overlay-score`.
+- **One overlay for three modes:** `#overlay` is reused for the start screen, PAUSA and GAME OVER via `showOverlay(mode, title, text)`, which sets `data-mode` and shows/hides the records section. On load the game shows the start screen instead of calling `init()`; until then `board` is undefined and the `keydown` handler bails out.
+- **Records (`localStorage` key `records`):** `{ top, bestCombo, maxLines }`, kept in the module-level `records` (not reset by `init()`, like the theme). `combo`/`maxCombo` are tracked in `clearLines()` (consecutive line-clearing locks; the rayo doesn't break a combo). `endGame()` → `registerGame()` inserts the entry immediately with the last used name (`playerName` key); the name input then edits that `newRecord` object in place, which `renderRecords()` also uses to highlight the row.
 - **Rendering** redraws the whole board every frame (`draw()`); the next-piece preview (`drawNext()`) is only redrawn on `spawn()` and assumes a 4×4 grid of 30px cells on the 120×120 `#next-canvas`.
 
 ## Coupled values
