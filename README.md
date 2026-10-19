@@ -45,6 +45,7 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
 - **Niveles** que aumentan cada 10 líneas y aceleran la caída.
 - **Menú de pausa** (`P` o `Esc`) con opciones para reanudar, reiniciar, ver los controles y elegir el **nivel inicial** (1–10) de la próxima partida (se guarda en `localStorage`). Mientras el menú está abierto el juego ignora las teclas de movimiento.
 - **Game Over** con opción de reinicio.
+- **Tabla de récords local** (`localStorage`): top 5 puntuaciones con nombre del jugador, visible en la pantalla de inicio y en el Game Over. Si la partida entra al top se resalta y se puede escribir el nombre; también guarda el **mejor combo** (piezas seguidas que completan líneas) y las **líneas máximas** en una partida. Incluye botón para borrar los récords.
 
 ---
 
@@ -101,7 +102,7 @@ Define la estructura visual:
 
 - Un `<canvas id="board">` de **300 × 600** píxeles donde se renderiza el tablero.
 - Un panel lateral con `SCORE`, `LINES`, `LEVEL`, vista de la siguiente pieza y la lista de controles.
-- Un overlay para los estados **PAUSA** (con el menú de pausa) y **GAME OVER**.
+- Un overlay para la pantalla de inicio, el estado **PAUSA** (con el menú de pausa) y **GAME OVER**, con la tabla de récords.
 
 ### 2. `style.css`
 
@@ -178,6 +179,7 @@ Algunos parámetros fáciles de tunear en `game.js`:
 | `BLOCK`        | Tamaño en píxeles de cada celda          | `30`                  |
 | `COLORS`       | Paleta de colores por tipo de pieza      | 9 colores             |
 | `RAYO_EVERY`   | Cada cuántas líneas aparece el rayo ⚡    | `1`                   |
+| `TOP_N`        | Puestos de la tabla de récords           | `5`                   |
 | `LINE_SCORES`  | Puntos por 1, 2, 3 o 4 líneas eliminadas | `[0,100,300,500,800]` |
 | `dropInterval` | Velocidad inicial de caída en ms         | `1000`                |
 
