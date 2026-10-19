@@ -40,6 +40,7 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
 - **Soft drop** (bajada acelerada) y **hard drop** (caída instantánea).
 - **Pieza fantasma** (_ghost piece_): muestra dónde aterrizará la pieza actual.
 - **Vista previa** de la siguiente pieza.
+- **Skins visuales** seleccionables desde el panel lateral, sin recargar: **Retro** (bloques planos), **Neon** (fondo negro y brillo con `shadowBlur`), **Pastel** (colores suaves y bordes redondeados) y **Pixel art** (textura pixelada sobre cada bloque). La elección se guarda en `localStorage`.
 - **Modo claro / oscuro** mediante un switch en la esquina superior derecha (oscuro por defecto; la elección se guarda en `localStorage`).
 - **Sistema de puntuación** clásico de Tetris (100 / 300 / 500 / 800 multiplicado por nivel).
 - **Niveles** que aumentan cada 10 líneas y aceleran la caída.
@@ -101,7 +102,7 @@ El juego se compone de tres archivos que cooperan:
 Define la estructura visual:
 
 - Un `<canvas id="board">` de **300 × 600** píxeles donde se renderiza el tablero.
-- Un panel lateral con `SCORE`, `LINES`, `LEVEL`, vista de la siguiente pieza y la lista de controles.
+- Un panel lateral con `SCORE`, `LINES`, `LEVEL`, vista de la siguiente pieza, selector de skin y la lista de controles.
 - Un overlay para la pantalla de inicio, el estado **PAUSA** (con el menú de pausa) y **GAME OVER**, con la tabla de récords.
 
 ### 2. `style.css`
@@ -120,6 +121,7 @@ Contiene toda la lógica del juego. A grandes rasgos:
 - **Limpieza de líneas** (`clearLines`): recorre el tablero de abajo hacia arriba; cada fila completa se elimina y se inserta una vacía en la cima.
 - **Puntuación**: usa la tabla clásica `[0, 100, 300, 500, 800]` multiplicada por el nivel actual; el hard drop suma 2 puntos por celda recorrida y el soft drop 1 punto por fila.
 - **Nivel y velocidad**: la partida empieza en el nivel inicial elegido en el menú de pausa y sube uno cada 10 líneas; la velocidad de caída se calcula como `max(100, 1000 − (level − 1) × 90)` milisegundos.
+- **Skins** (`SKINS`, `applySkin`): cada skin aporta su paleta y su `drawCell`; `drawBlock` delega en la skin activa, así que cambiarla solo reasigna `COLORS`/`skin` y redibuja.
 - **Ghost piece** (`ghostY`): proyecta la posición final de la pieza actual hacia abajo y la dibuja con `globalAlpha = 0.2`.
 
 ### Flujo del juego
@@ -177,7 +179,7 @@ Algunos parámetros fáciles de tunear en `game.js`:
 | `COLS`         | Columnas del tablero                     | `10`                  |
 | `ROWS`         | Filas del tablero                        | `20`                  |
 | `BLOCK`        | Tamaño en píxeles de cada celda          | `30`                  |
-| `COLORS`       | Paleta de colores por tipo de pieza      | 9 colores             |
+| `SKINS`        | Paleta (`colors`) y función de dibujo (`drawCell`) de cada skin | 4 skins |
 | `RAYO_EVERY`   | Cada cuántas líneas aparece el rayo ⚡    | `1`                   |
 | `TOP_N`        | Puestos de la tabla de récords           | `5`                   |
 | `LINE_SCORES`  | Puntos por 1, 2, 3 o 4 líneas eliminadas | `[0,100,300,500,800]` |

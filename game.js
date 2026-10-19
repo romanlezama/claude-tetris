@@ -4,18 +4,91 @@ const COLS = 10;
 const ROWS = 20;
 const BLOCK = 30;
 
-const COLORS = [
-  null,
-  '#4dd0e1', // I - cyan
-  '#ffd54f', // O - yellow
-  '#ba68c8', // T - purple
-  '#81c784', // S - green
-  '#e57373', // Z - red
-  '#90caf9', // J - azul pálido
-  '#ffb74d', // L - orange
-  '#b0bec5', // N - tuerca (gris metálico)
-  '#fff176', // ⚡ rayo
-];
+// Cada skin define su paleta (indexada por tipo de pieza, 1–9) y cómo se pinta una celda.
+// drawCell(context, px, py, s, color) recibe la esquina en píxeles y el tamaño de la celda.
+const SKINS = {
+  retro: {
+    label: 'Retro',
+    colors: [
+      null,
+      '#4dd0e1', // I - cyan
+      '#ffd54f', // O - yellow
+      '#ba68c8', // T - purple
+      '#81c784', // S - green
+      '#e57373', // Z - red
+      '#90caf9', // J - azul pálido
+      '#ffb74d', // L - orange
+      '#b0bec5', // N - tuerca (gris metálico)
+      '#fff176', // ⚡ rayo
+    ],
+    drawCell(context, px, py, s, color) {
+      context.fillStyle = color;
+      context.fillRect(px + 1, py + 1, s - 2, s - 2);
+      // highlight
+      context.fillStyle = 'rgba(255,255,255,0.12)';
+      context.fillRect(px + 1, py + 1, s - 2, 4);
+    },
+  },
+  neon: {
+    label: 'Neon',
+    colors: [null, '#00f0ff', '#fff200', '#d400ff', '#39ff14', '#ff073a', '#2979ff', '#ff8c00', '#e0e0ff', '#ffff66'],
+    drawCell(context, px, py, s, color) {
+      context.shadowColor = color;
+      context.shadowBlur = s * 0.5;
+      context.strokeStyle = color;
+      context.lineWidth = 2;
+      context.strokeRect(px + 3, py + 3, s - 6, s - 6);
+      context.shadowBlur = s * 0.25;
+      context.fillStyle = color;
+      context.globalAlpha *= 0.35;
+      context.fillRect(px + 5, py + 5, s - 10, s - 10);
+      context.globalAlpha /= 0.35;
+      context.shadowBlur = 0;
+    },
+  },
+  pastel: {
+    label: 'Pastel',
+    colors: [null, '#a8e6ef', '#fdf1a8', '#d7b9f0', '#b9e8c4', '#f7b7c3', '#b8d4f7', '#fcd3a8', '#d5dbe0', '#fff5b8'],
+    drawCell(context, px, py, s, color) {
+      roundRectPath(context, px + 2, py + 2, s - 4, s - 4, s * 0.25);
+      context.fillStyle = color;
+      context.fill();
+      context.strokeStyle = 'rgba(0,0,0,0.12)';
+      context.lineWidth = 1.5;
+      context.stroke();
+      // brillo suave arriba a la izquierda
+      roundRectPath(context, px + 5, py + 5, s * 0.35, s * 0.2, s * 0.1);
+      context.fillStyle = 'rgba(255,255,255,0.5)';
+      context.fill();
+    },
+  },
+  pixel: {
+    label: 'Pixel art',
+    colors: [null, '#29adff', '#ffec27', '#a05cff', '#00e436', '#ff004d', '#3d5afe', '#ffa300', '#83769c', '#fff1e8'],
+    drawCell(context, px, py, s, color) {
+      const p = s / 6; // la celda es una rejilla de 6×6 "píxeles"
+      context.fillStyle = color;
+      context.fillRect(px, py, s, s);
+      // bisel: luz arriba/izquierda, sombra abajo/derecha
+      context.fillStyle = 'rgba(255,255,255,0.45)';
+      context.fillRect(px, py, s - p, p);
+      context.fillRect(px, py + p, p, s - 2 * p);
+      context.fillStyle = 'rgba(0,0,0,0.35)';
+      context.fillRect(px + p, py + s - p, s - p, p);
+      context.fillRect(px + s - p, py, p, s - p);
+      // textura de puntos en tablero de ajedrez
+      context.fillStyle = 'rgba(0,0,0,0.15)';
+      for (let r = 1; r < 5; r++)
+        for (let c = 1; c < 5; c++)
+          if ((r + c) % 2 === 0) context.fillRect(px + c * p, py + r * p, p, p);
+      // contorno
+      context.strokeStyle = 'rgba(0,0,0,0.6)';
+      context.lineWidth = 1;
+      context.strokeRect(px + 0.5, py + 0.5, s - 1, s - 1);
+    },
+  },
+};
+const DEFAULT_SKIN = 'retro';
 
 const PIECES = [
   null,
@@ -56,6 +129,7 @@ const menuRestartBtn = document.getElementById('menu-restart-btn');
 const controlsBtn = document.getElementById('controls-btn');
 const menuControls = document.getElementById('menu-controls');
 const startLevelSelect = document.getElementById('start-level');
+const skinSelect = document.getElementById('skin-select');
 const newRecordBox = document.getElementById('new-record');
 const newRecordMsg = document.getElementById('new-record-msg');
 const playerNameInput = document.getElementById('player-name');
@@ -65,7 +139,7 @@ const bestComboEl = document.getElementById('best-combo');
 const maxLinesEl = document.getElementById('max-lines');
 const resetRecordsBtn = document.getElementById('reset-records-btn');
 
-let gridColor;
+let gridColor, skin, COLORS;
 let startLevel = 1;        // preferencia: no se reinicia en init()
 let ignoreRepeat = false;  // tras reanudar, ignora el autorepeat de teclas mantenidas en el menú
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId, rayoPending;
@@ -205,16 +279,23 @@ function updateHUD() {
   levelEl.textContent = level;
 }
 
+function roundRectPath(context, x, y, w, h, r) {
+  context.beginPath();
+  context.moveTo(x + r, y);
+  context.arcTo(x + w, y, x + w, y + h, r);
+  context.arcTo(x + w, y + h, x, y + h, r);
+  context.arcTo(x, y + h, x, y, r);
+  context.arcTo(x, y, x + w, y, r);
+  context.closePath();
+}
+
 function drawBlock(context, x, y, colorIndex, size, alpha) {
   if (!colorIndex) return;
   const color = COLORS[colorIndex];
   context.globalAlpha = alpha ?? 1;
-  context.fillStyle = color;
-  context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-  // highlight
-  context.fillStyle = 'rgba(255,255,255,0.12)';
-  context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
+  skin.drawCell(context, x * size, y * size, size, color);
   if (colorIndex === RAYO) {
+    context.fillStyle = color;
     context.font = `${size * 0.7}px sans-serif`;
     context.textAlign = 'center';
     context.textBaseline = 'middle';
@@ -277,11 +358,26 @@ function drawNext() {
 function applyTheme(theme) {
   const isLight = theme === 'light';
   document.documentElement.dataset.theme = isLight ? 'light' : 'dark';
-  gridColor = getComputedStyle(document.documentElement).getPropertyValue('--grid').trim();
   themeToggle.setAttribute('aria-checked', String(isLight));
   themeLabel.textContent = isLight ? 'Modo oscuro' : 'Modo claro';
   themeToggle.setAttribute('aria-label', themeLabel.textContent);
-  if (board) { draw(); drawNext(); }
+  refreshCanvas();
+}
+
+// La skin también es preferencia de UI: cambia paleta y función de dibujo sin recargar
+function applySkin(name) {
+  if (!SKINS[name]) name = DEFAULT_SKIN;
+  skin = SKINS[name];
+  COLORS = skin.colors;
+  document.documentElement.dataset.skin = name;
+  skinSelect.value = name;
+  refreshCanvas();
+}
+
+// Relee las variables CSS que usa el canvas (dependen de tema y skin) y redibuja
+function refreshCanvas() {
+  gridColor = getComputedStyle(document.documentElement).getPropertyValue('--grid').trim();
+  if (board && skin) { draw(); drawNext(); }
   else { ctx.clearRect(0, 0, canvas.width, canvas.height); drawGrid(); }
 }
 
@@ -448,6 +544,7 @@ function init() {
 
 document.addEventListener('keydown', e => {
   if (!board) return; // pantalla de inicio: aún no hay partida
+  if (e.target === skinSelect) return; // las flechas pertenecen al <select> mientras tiene el foco
   if (e.code === 'KeyP' || e.code === 'Escape') {
     if (e.repeat) return;
     if (e.code === 'Escape' && paused && !menuControls.classList.contains('hidden')) {
@@ -533,9 +630,21 @@ themeToggle.addEventListener('click', () => {
   themeToggle.blur(); // evita que Space (caída) active el botón
 });
 
-let savedTheme = null;
-try { savedTheme = localStorage.getItem('theme'); } catch (e) {}
+skinSelect.addEventListener('change', () => {
+  applySkin(skinSelect.value);
+  try { localStorage.setItem('skin', skinSelect.value); } catch (e) {}
+  skinSelect.blur(); // evita que las flechas cambien la skin en vez de mover la pieza
+});
+
+for (const [name, { label }] of Object.entries(SKINS)) skinSelect.add(new Option(label, name));
+
+let savedTheme = null, savedSkin = null;
+try {
+  savedTheme = localStorage.getItem('theme');
+  savedSkin = localStorage.getItem('skin');
+} catch (e) {}
 applyTheme(savedTheme === 'light' ? 'light' : 'dark');
+applySkin(savedSkin);
 
 let savedLevel = NaN;
 try { savedLevel = Number(localStorage.getItem('startLevel')); } catch (e) {}
