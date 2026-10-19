@@ -50,6 +50,8 @@ const themeLabel = document.getElementById('theme-label');
 
 let gridColor;
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId, rayoPending;
+let startLevel = 1;            // preferencia del menú de pausa: no se reinicia en init()
+let gameStartLevel, inputBlockedUntil;
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
@@ -120,10 +122,14 @@ function clearLines() {
     lines += cleared;
     if (Math.floor(lines / RAYO_EVERY) > Math.floor((lines - cleared) / RAYO_EVERY)) rayoPending = true;
     score += (LINE_SCORES[cleared] || 0) * level;
-    level = Math.floor(lines / 10) + 1;
-    dropInterval = Math.max(100, 1000 - (level - 1) * 90);
+    level = Math.max(gameStartLevel, Math.floor(lines / 10) + 1);
+    dropInterval = speedForLevel(level);
     updateHUD();
   }
+}
+
+function speedForLevel(lvl) {
+  return Math.max(100, 1000 - (lvl - 1) * 90);
 }
 
 function ghostY() {
@@ -266,15 +272,74 @@ function togglePause() {
   if (gameOver) return;
   paused = !paused;
   if (!paused) {
+    hidePauseMenu();
+    releaseInput();
     lastTime = performance.now();
     loop(lastTime);
   } else {
     cancelAnimationFrame(animId);
-    overlayTitle.textContent = 'PAUSA';
-    overlayScore.textContent = '';
-    overlay.classList.remove('hidden');
+    showPauseMenu();
   }
 }
+
+// ---- Menú de pausa ----
+const START_LEVEL_MAX = 10;
+const RESUME_GRACE_MS = 150; // ignora teclas de juego justo después de cerrar el menú
+const pauseMenu = document.getElementById('pause-menu');
+const resumeBtn = document.getElementById('resume-btn');
+const pauseRestartBtn = document.getElementById('pause-restart-btn');
+const controlsBtn = document.getElementById('controls-btn');
+const pauseControls = document.getElementById('pause-controls');
+const startLevelSelect = document.getElementById('start-level');
+
+function showPauseMenu() {
+  startLevelSelect.value = String(startLevel);
+  pauseMenu.classList.remove('hidden');
+  resumeBtn.focus();
+}
+
+function hidePauseMenu() {
+  pauseMenu.classList.add('hidden');
+  pauseControls.classList.add('hidden');
+  controlsBtn.setAttribute('aria-expanded', 'false');
+  controlsBtn.textContent = 'Ver controles';
+}
+
+// Quita el foco de los controles del menú (Space/Enter no deben reactivarlos)
+// y bloquea brevemente las teclas de juego para evitar movimientos accidentales.
+function releaseInput() {
+  const el = document.activeElement;
+  if (el && el !== document.body && typeof el.blur === 'function') el.blur();
+  inputBlockedUntil = performance.now() + RESUME_GRACE_MS;
+}
+
+const pauseFocusables = [resumeBtn, pauseRestartBtn, controlsBtn, startLevelSelect];
+
+// Mantiene el foco de Tab dentro del menú (el diálogo es modal)
+function trapPauseFocus(e) {
+  const i = pauseFocusables.indexOf(document.activeElement);
+  const n = pauseFocusables.length;
+  const j = i === -1 ? (e.shiftKey ? n - 1 : 0) : (i + (e.shiftKey ? n - 1 : 1)) % n;
+  e.preventDefault();
+  pauseFocusables[j].focus();
+}
+
+function toggleControlsList() {
+  const show = pauseControls.classList.toggle('hidden') === false;
+  controlsBtn.setAttribute('aria-expanded', String(show));
+  controlsBtn.textContent = show ? 'Ocultar controles' : 'Ver controles';
+}
+
+function parseStartLevel(value) {
+  const n = parseInt(value, 10);
+  return n >= 1 && n <= START_LEVEL_MAX ? n : 1;
+}
+
+function setStartLevel(value) {
+  startLevel = parseStartLevel(value);
+  try { localStorage.setItem('startLevel', String(startLevel)); } catch (e) {}
+}
+// ---- fin menú de pausa ----
 
 function loop(ts) {
   const dt = ts - lastTime;
@@ -297,10 +362,12 @@ function init() {
   board = createBoard();
   score = 0;
   lines = 0;
-  level = 1;
+  gameStartLevel = startLevel; // el nivel elegido en el menú se aplica al empezar partida
+  level = gameStartLevel;
   paused = false;
   gameOver = false;
-  dropInterval = 1000;
+  inputBlockedUntil = 0;
+  dropInterval = speedForLevel(level);
   dropAccum = 0;
   rayoPending = false;
   lastTime = performance.now();
@@ -308,13 +375,30 @@ function init() {
   spawn();
   updateHUD();
   overlay.classList.add('hidden');
+  hidePauseMenu();
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
 
 document.addEventListener('keydown', e => {
-  if (e.code === 'KeyP') { togglePause(); return; }
-  if (paused || gameOver) return;
+  // Escape sobre el selector solo cierra su desplegable (y devuelve el foco a
+  // Reanudar), no el menú
+  if (e.code === 'Escape' && e.target === startLevelSelect) { resumeBtn.focus(); return; }
+  if (e.code === 'KeyP' || e.code === 'Escape') {
+    e.preventDefault();
+    if (!e.repeat) togglePause();
+    return;
+  }
+  // Con el menú abierto solo se atiende P/Escape; el resto queda para la
+  // navegación nativa de botones y selector del menú.
+  if (paused) {
+    if (e.code === 'Tab') trapPauseFocus(e);
+    // fuera de los controles del menú, Space/flechas no deben desplazar la página
+    else if (!pauseMenu.contains(e.target) && (e.code === 'Space' || e.code.startsWith('Arrow'))) e.preventDefault();
+    return;
+  }
+  if (gameOver) return;
+  if (performance.now() < inputBlockedUntil) return;
   switch (e.code) {
     case 'ArrowLeft':
       if (!collide(current.shape, current.x - 1, current.y)) current.x--;
@@ -338,6 +422,24 @@ document.addEventListener('keydown', e => {
 });
 
 restartBtn.addEventListener('click', init);
+
+// ---- Menú de pausa ----
+for (let n = 1; n <= START_LEVEL_MAX; n++) {
+  const opt = document.createElement('option');
+  opt.value = String(n);
+  opt.textContent = String(n);
+  startLevelSelect.appendChild(opt);
+}
+resumeBtn.addEventListener('click', () => { if (paused) togglePause(); });
+pauseRestartBtn.addEventListener('click', () => { init(); releaseInput(); });
+controlsBtn.addEventListener('click', toggleControlsList);
+startLevelSelect.addEventListener('change', () => setStartLevel(startLevelSelect.value));
+restartBtn.addEventListener('click', releaseInput); // Game Over: mismo tratamiento que Reiniciar del menú
+
+let savedStartLevel = null;
+try { savedStartLevel = localStorage.getItem('startLevel'); } catch (e) {}
+startLevel = parseStartLevel(savedStartLevel);
+// ---- fin menú de pausa ----
 
 themeToggle.addEventListener('click', () => {
   const theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
