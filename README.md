@@ -44,6 +44,8 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
 - **Sistema de puntuación** clásico de Tetris (100 / 300 / 500 / 800 multiplicado por nivel).
 - **Niveles** que aumentan cada 10 líneas y aceleran la caída.
 - **Pausa** y **Game Over** con opción de reinicio.
+- **Pantalla de inicio** con el botón **Jugar**: la partida no empieza hasta pulsarlo.
+- **Tabla de récords local** (Top 5 en `localStorage`): al terminar, si tu puntuación entra en el top aparece **¡Nuevo récord!** con un campo para tu nombre y la fila guardada queda resaltada. La tabla se muestra en la pantalla de inicio y en el Game Over, junto con el **mejor combo** (piezas seguidas que limpian líneas) y las **líneas máximas** históricas de todas las partidas. El botón **Borrar récords** los elimina (pide confirmación).
 
 ---
 
@@ -123,6 +125,8 @@ Contiene toda la lógica del juego. A grandes rasgos:
 ### Flujo del juego
 
 ```
+showStartScreen()                   → overlay con récords y botón "Jugar"
+        ↓ (clic en Jugar)
 init()
   ├─ createBoard()                  → matriz vacía
   ├─ next = randomPiece()
@@ -138,7 +142,9 @@ init()
    keydown → mover / rotar / soft-drop / hard-drop / pausa
 ```
 
-Cuando una pieza recién generada ya colisiona al aparecer (`spawn`), se dispara `endGame()` y se muestra el overlay de **Game Over**.
+Cuando una pieza recién generada ya colisiona al aparecer (`spawn`), se dispara `endGame()` y se muestra el overlay de **Game Over** con la tabla de récords (y el formulario de nombre si la puntuación entra en el Top 5).
+
+Los récords se guardan en `localStorage`: la clave `records` contiene el Top 5 (`[{name, score, lines, combo, date}]`) y la clave `bests` el mejor combo y las líneas máximas de **todas** las partidas, entren o no al top.
 
 ---
 
