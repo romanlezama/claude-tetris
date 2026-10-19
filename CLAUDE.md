@@ -28,12 +28,14 @@ Key points in `game.js` that span multiple functions:
 - **`collide(shape, x, y)` is the single source of truth** for movement, rotation (`tryRotate` with kicks `[0,-1,1,-2,2]`), gravity, ghost projection (`ghostY`), and game-over detection in `spawn()`. Cells with `y < 0` are allowed (above the board).
 - **Locking pipeline:** `lockPiece()` → `merge()` → `clearLines()` (or `clearColumn()` for `RAYO`) (updates lines/score/level/`dropInterval`) → `spawn()` (promotes `next`, may call `endGame()`, redraws the preview).
 - **Loop control:** `loop()` reschedules itself via `requestAnimationFrame` and stores the id in `animId`; pause and game over stop it with `cancelAnimationFrame(animId)`. Unpausing restarts it by calling `loop()` directly after resetting `lastTime`.
-- **One overlay for two states:** `#overlay` is reused for both PAUSA and GAME OVER by rewriting `#overlay-title` / `#overlay-score`.
+- **One overlay for two states:** `#overlay` is reused for both PAUSA and GAME OVER by rewriting `#overlay-title` / `#overlay-score`. `pause()` shows `#pause-menu` (Reanudar / Reiniciar / Ver controles / Nivel inicial) and hides `#restart-btn`; `endGame()` and `init()` do the reverse.
+- **Pause input blocking:** while `paused`, the `keydown` handler only reacts to `P`/`Escape` (Escape first closes the controls list); other keys fall through to native menu navigation. `resume()` blurs the focused menu control and sets `ignoreRepeat`, which drops autorepeat keydowns until the next `keyup`.
+- **`startLevel`** (like the theme) is a preference persisted in `localStorage` and *not* reset by `init()`; `init()` starts at `level = startLevel` and `clearLines()` computes `level = startLevel + floor(lines / 10)`, with speed from `speedFor(level)`.
 - **Rendering** redraws the whole board every frame (`draw()`); the next-piece preview (`drawNext()`) is only redrawn on `spawn()` and assumes a 4×4 grid of 30px cells on the 120×120 `#next-canvas`.
 
 ## Coupled values
 
-`COLS`, `ROWS`, `BLOCK` in `game.js` must match the `<canvas id="board">` `width`/`height` in `index.html` (`COLS × BLOCK` by `ROWS × BLOCK`, currently 300×600). The controls list in `index.html` and the README controls table should be kept in sync with the `keydown` handler.
+`COLS`, `ROWS`, `BLOCK` in `game.js` must match the `<canvas id="board">` `width`/`height` in `index.html` (`COLS × BLOCK` by `ROWS × BLOCK`, currently 300×600). The controls lists in `index.html` (sidebar and `#menu-controls` in the pause menu) and the README controls table should be kept in sync with the `keydown` handler.
 
 ## CI / GitHub Actions
 

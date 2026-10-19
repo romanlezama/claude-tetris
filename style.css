@@ -246,3 +246,101 @@ kbd {
 #restart-btn:hover {
   background: var(--accent-hover);
 }
+
+/* ---- Menú de pausa ---- */
+.hidden {
+  display: none !important;
+}
+
+.pause-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 200px;
+}
+
+.menu-btn {
+  background: var(--kbd-bg);
+  color: var(--text);
+  border: 1px solid var(--kbd-border);
+  border-radius: 6px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.menu-btn:hover,
+.menu-btn:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.menu-btn.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.menu-btn.primary:hover,
+.menu-btn.primary:focus-visible {
+  background: var(--accent-hover);
+}
+
+.menu-controls {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--board-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-align: left;
+}
+
+.menu-controls li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.menu-controls li span {
+  display: flex;
+  gap: 4px;
+  min-width: 70px;
+}
+
+.level-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.level-select select {
+  background: var(--kbd-bg);
+  color: var(--text);
+  border: 1px solid var(--kbd-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.level-select select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.menu-hint {
+  font-size: 11px;
+  color: var(--muted);
+}

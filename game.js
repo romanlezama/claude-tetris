@@ -33,6 +33,7 @@ const PIECES = [
 const LINE_SCORES = [0, 100, 300, 500, 800];
 const RAYO = 9;        // tipo de la pieza especial; debe ser el último de PIECES
 const RAYO_EVERY = 1;  // aparece cada N líneas
+const MAX_START_LEVEL = 10; // a partir de aquí la velocidad ya está al mínimo (100ms)
 
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
@@ -47,8 +48,16 @@ const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
 const themeToggle = document.getElementById('theme-toggle');
 const themeLabel = document.getElementById('theme-label');
+const pauseMenu = document.getElementById('pause-menu');
+const resumeBtn = document.getElementById('resume-btn');
+const menuRestartBtn = document.getElementById('menu-restart-btn');
+const controlsBtn = document.getElementById('controls-btn');
+const menuControls = document.getElementById('menu-controls');
+const startLevelSelect = document.getElementById('start-level');
 
 let gridColor;
+let startLevel = 1;        // preferencia: no se reinicia en init()
+let ignoreRepeat = false;  // tras reanudar, ignora el autorepeat de teclas mantenidas en el menú
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId, rayoPending;
 
 function createBoard() {
@@ -120,10 +129,14 @@ function clearLines() {
     lines += cleared;
     if (Math.floor(lines / RAYO_EVERY) > Math.floor((lines - cleared) / RAYO_EVERY)) rayoPending = true;
     score += (LINE_SCORES[cleared] || 0) * level;
-    level = Math.floor(lines / 10) + 1;
-    dropInterval = Math.max(100, 1000 - (level - 1) * 90);
+    level = startLevel + Math.floor(lines / 10);
+    dropInterval = speedFor(level);
     updateHUD();
   }
+}
+
+function speedFor(lvl) {
+  return Math.max(100, 1000 - (lvl - 1) * 90);
 }
 
 function ghostY() {
@@ -259,21 +272,44 @@ function endGame() {
   cancelAnimationFrame(animId);
   overlayTitle.textContent = 'GAME OVER';
   overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
+  pauseMenu.classList.add('hidden');
+  restartBtn.classList.remove('hidden');
   overlay.classList.remove('hidden');
 }
 
+function setControlsVisible(visible) {
+  menuControls.classList.toggle('hidden', !visible);
+  controlsBtn.setAttribute('aria-expanded', String(visible));
+  controlsBtn.textContent = visible ? 'Ocultar controles' : 'Ver controles';
+}
+
+function pause() {
+  if (paused || gameOver) return;
+  paused = true;
+  cancelAnimationFrame(animId);
+  overlayTitle.textContent = 'PAUSA';
+  overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
+  setControlsVisible(false);
+  startLevelSelect.value = String(startLevel);
+  restartBtn.classList.add('hidden');
+  pauseMenu.classList.remove('hidden');
+  overlay.classList.remove('hidden');
+  resumeBtn.focus();
+}
+
+function resume() {
+  if (!paused || gameOver) return;
+  paused = false;
+  ignoreRepeat = true;
+  document.activeElement?.blur(); // evita que Space/Enter vuelvan a activar un botón del menú
+  overlay.classList.add('hidden');
+  lastTime = performance.now();
+  loop(lastTime);
+}
+
 function togglePause() {
-  if (gameOver) return;
-  paused = !paused;
-  if (!paused) {
-    lastTime = performance.now();
-    loop(lastTime);
-  } else {
-    cancelAnimationFrame(animId);
-    overlayTitle.textContent = 'PAUSA';
-    overlayScore.textContent = '';
-    overlay.classList.remove('hidden');
-  }
+  if (paused) resume();
+  else pause();
 }
 
 function loop(ts) {
@@ -297,10 +333,11 @@ function init() {
   board = createBoard();
   score = 0;
   lines = 0;
-  level = 1;
+  level = startLevel;
   paused = false;
   gameOver = false;
-  dropInterval = 1000;
+  ignoreRepeat = false;
+  dropInterval = speedFor(level);
   dropAccum = 0;
   rayoPending = false;
   lastTime = performance.now();
@@ -308,13 +345,27 @@ function init() {
   spawn();
   updateHUD();
   overlay.classList.add('hidden');
+  pauseMenu.classList.add('hidden');
+  restartBtn.classList.remove('hidden');
+  document.activeElement?.blur();
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
 
 document.addEventListener('keydown', e => {
-  if (e.code === 'KeyP') { togglePause(); return; }
+  if (e.code === 'KeyP' || e.code === 'Escape') {
+    if (e.repeat) return;
+    if (e.code === 'Escape' && paused && !menuControls.classList.contains('hidden')) {
+      setControlsVisible(false);
+      controlsBtn.focus();
+      return;
+    }
+    togglePause();
+    return;
+  }
+  // con el menú abierto las teclas solo navegan el menú (Tab, Enter, flechas en el selector)
   if (paused || gameOver) return;
+  if (ignoreRepeat && e.repeat) return;
   switch (e.code) {
     case 'ArrowLeft':
       if (!collide(current.shape, current.x - 1, current.y)) current.x--;
@@ -337,7 +388,25 @@ document.addEventListener('keydown', e => {
   updateHUD();
 });
 
+document.addEventListener('keyup', () => { ignoreRepeat = false; });
+
 restartBtn.addEventListener('click', init);
+resumeBtn.addEventListener('click', resume);
+menuRestartBtn.addEventListener('click', init);
+controlsBtn.addEventListener('click', () => {
+  setControlsVisible(menuControls.classList.contains('hidden'));
+});
+
+for (let lvl = 1; lvl <= MAX_START_LEVEL; lvl++) {
+  const opt = document.createElement('option');
+  opt.value = String(lvl);
+  opt.textContent = String(lvl);
+  startLevelSelect.appendChild(opt);
+}
+startLevelSelect.addEventListener('change', () => {
+  startLevel = Number(startLevelSelect.value);
+  try { localStorage.setItem('startLevel', String(startLevel)); } catch (e) {}
+});
 
 themeToggle.addEventListener('click', () => {
   const theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
@@ -349,5 +418,10 @@ themeToggle.addEventListener('click', () => {
 let savedTheme = null;
 try { savedTheme = localStorage.getItem('theme'); } catch (e) {}
 applyTheme(savedTheme === 'light' ? 'light' : 'dark');
+
+let savedLevel = NaN;
+try { savedLevel = Number(localStorage.getItem('startLevel')); } catch (e) {}
+if (Number.isInteger(savedLevel) && savedLevel >= 1 && savedLevel <= MAX_START_LEVEL) startLevel = savedLevel;
+startLevelSelect.value = String(startLevel);
 
 init();
