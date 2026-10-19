@@ -53,6 +53,27 @@
         <p id="overlay-title">GAME OVER</p>
         <p id="overlay-score"></p>
         <button id="restart-btn">Reiniciar</button>
+        <!-- ---- Récords ---- -->
+        <div id="records" class="records">
+          <div id="record-form" class="record-form" hidden>
+            <p class="record-new">¡Nuevo récord!</p>
+            <div class="record-form-row">
+              <input id="record-name" type="text" maxlength="12" value="Jugador" aria-label="Nombre del jugador" />
+              <button id="record-save-btn" class="records-btn">Guardar</button>
+            </div>
+          </div>
+          <span class="label">TOP 5</span>
+          <table class="records-table">
+            <thead>
+              <tr><th>#</th><th>Nombre</th><th>Puntos</th><th>Líneas</th><th>Combo</th></tr>
+            </thead>
+            <tbody id="records-body"></tbody>
+          </table>
+          <p id="records-bests" class="records-bests"></p>
+          <button id="play-btn">Jugar</button>
+          <button id="records-reset-btn" class="records-btn records-reset">Borrar récords</button>
+        </div>
+        <!-- ---- /Récords ---- -->
       </div>
     </div>
   </div>

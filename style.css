@@ -246,3 +246,146 @@ kbd {
 #restart-btn:hover {
   background: var(--accent-hover);
 }
+
+/* ---- Récords ---- */
+.records {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.overlay.show-records .records {
+  display: flex;
+}
+
+.overlay.start-screen #overlay-title {
+  color: var(--accent);
+}
+
+.overlay.start-screen #restart-btn,
+#play-btn {
+  display: none;
+}
+
+.overlay.start-screen #play-btn {
+  display: block;
+}
+
+#play-btn {
+  margin-top: 4px;
+  background: var(--accent);
+  color: var(--on-accent);
+  border: none;
+  border-radius: 6px;
+  padding: 10px 28px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: background 0.15s;
+}
+
+#play-btn:hover {
+  background: var(--accent-hover);
+}
+
+.record-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.record-form[hidden] {
+  display: none;
+}
+
+.record-new {
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--accent);
+}
+
+.record-form-row {
+  display: flex;
+  gap: 6px;
+}
+
+#record-name {
+  width: 130px;
+  background: var(--kbd-bg);
+  border: 1px solid var(--kbd-border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 4px 8px;
+  font-size: 13px;
+  user-select: text;
+}
+
+#record-name:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.records-btn {
+  background: var(--kbd-bg);
+  border: 1px solid var(--kbd-border);
+  border-radius: 4px;
+  color: var(--text);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.records-btn:hover {
+  border-color: var(--accent);
+}
+
+.records-reset {
+  color: var(--danger);
+  font-size: 11px;
+}
+
+.records-table {
+  border-collapse: collapse;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.records-table th {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--label);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.records-table th,
+.records-table td {
+  padding: 2px 6px;
+  text-align: right;
+}
+
+.records-table th:nth-child(2),
+.records-table td:nth-child(2) {
+  text-align: left;
+}
+
+.records-table tr.record-highlight td {
+  color: var(--on-accent);
+  background: var(--accent);
+  font-weight: 700;
+}
+
+.records-table td.records-empty {
+  text-align: center;
+  color: var(--muted);
+}
+
+.records-bests {
+  font-size: 11px;
+  color: var(--muted);
+}
